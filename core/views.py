@@ -12,6 +12,12 @@ from .forms import (
 from .models import UserProfile, get_user_role
 
 
+def portal(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'core/portal.html')
+
+
 class CitizenLoginView(auth_views.LoginView):
     template_name = 'core/login.html'
     authentication_form = CitizenAuthenticationForm

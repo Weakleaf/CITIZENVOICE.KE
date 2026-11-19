@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 48px 24px;
+            color: #183027;
+            background:
+                radial-gradient(circle at 12% 0, #dcefe1, transparent 34%),
+                var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        .container {
+            width: min(100%, 1080px);
+            margin: 0 auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            color: var(--navy);
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .brand-mark,
+        .role-mark {
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            color: #fff;
+            background: var(--green);
+            font-weight: 800;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+        }
+
+        .intro {
+            max-width: 650px;
+            margin: 76px auto 38px;
+            text-align: center;
+        }
+
+        .intro h1 {
+            margin: 0 0 12px;
+            color: var(--navy);
+            font-size: clamp(30px, 5vw, 44px);
+            letter-spacing: -0.03em;
+        }
+
+        .intro p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .roles {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .role-card {
+            display: flex;
+            min-height: 280px;
+            flex-direction: column;
+            align-items: flex-start;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 25px;
+            background: #fff;
+            box-shadow: 0 12px 32px rgba(18, 55, 42, 0.06);
+        }
+
+        .role-mark {
+            width: 42px;
+            height: 42px;
+            margin-bottom: 20px;
+            background: #e4f1e7;
+            color: var(--navy);
+        }
+
+        .role-card h2 {
+            margin: 0 0 9px;
+            color: var(--navy);
+            font-size: 21px;
+        }
+
+        .role-card p {
+            margin: 0 0 24px;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .actions {
+            display: grid;
+            width: 100%;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .button {
+            display: block;
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            padding: 11px 14px;
+            color: #fff;
+            background: var(--green);
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #17643a;
+        }
+
+        .button.secondary {
+            color: var(--green);
+            background: #fff;
+        }
+
+        .button.secondary:hover {
+            background: #f0f7f1;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 28px 18px;
+            }
+
+            .intro {
+                margin-top: 54px;
+            }
+
+            .roles {
+                grid-template-columns: 1fr;
+            }
+
+            .role-card {
+                min-height: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">CV</span>
+            <span>CitizenVoice KE</span>
+        </div>
+
+        <header class="intro">
+            <h1>Welcome to CitizenVoice KE</h1>
+            <p>Choose your account type to sign in and continue to the right portal.</p>
+        </header>
+
+        <section class="roles" aria-label="Choose an account type">
+            <article class="role-card">
+                <span class="role-mark" aria-hidden="true">C</span>
+                <h2>Citizen</h2>
+                <p>Explore public projects, participate in consultations, and follow your reports.</p>
+                <div class="actions">
+                    <a class="button" href="{% url 'login' %}">Sign in as a citizen</a>
+                    <a class="button secondary" href="{% url 'citizen_register' %}">Create a citizen account</a>
+                </div>
+            </article>
+
+            <article class="role-card">
+                <span class="role-mark" aria-hidden="true">O</span>
+                <h2>Project officer</h2>
+                <p>Manage project information and respond to citizen reports.</p>
+                <div class="actions">
+                    <a class="button" href="{% url 'officer_login' %}">Sign in as an officer</a>
+                </div>
+            </article>
+
+            <article class="role-card">
+                <span class="role-mark" aria-hidden="true">A</span>
+                <h2>Administrator</h2>
+                <p>Manage user accounts, roles, and system administration.</p>
+                <div class="actions">
+                    <a class="button" href="{% url 'admin:login' %}">Sign in as an administrator</a>
+                </div>
+            </article>
+        </section>
+    </main>
+</body>
+</html>

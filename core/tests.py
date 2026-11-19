@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 
 from .models import UserProfile
 
@@ -11,10 +12,19 @@ class AuthenticationTests(TestCase):
             password='test-password-123',
         )
 
-    def test_dashboard_redirects_to_login_when_signed_out(self):
+    def test_portal_offers_each_sign_in_page(self):
         response = self.client.get('/')
 
-        self.assertRedirects(response, '/accounts/login/?next=/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('login'))
+        self.assertContains(response, reverse('officer_login'))
+        self.assertContains(response, reverse('admin:login'))
+        self.assertContains(response, reverse('citizen_register'))
+
+    def test_dashboard_redirects_to_portal_when_signed_out(self):
+        response = self.client.get('/dashboard/')
+
+        self.assertRedirects(response, '/?next=/dashboard/')
 
     def test_user_can_sign_in_and_open_dashboard(self):
         response = self.client.post(
@@ -22,8 +32,8 @@ class AuthenticationTests(TestCase):
             {'username': 'citizen', 'password': 'test-password-123'},
         )
 
-        self.assertRedirects(response, '/')
-        dashboard_response = self.client.get('/')
+        self.assertRedirects(response, '/dashboard/')
+        dashboard_response = self.client.get('/dashboard/')
         self.assertEqual(dashboard_response.status_code, 200)
         self.assertContains(dashboard_response, 'Welcome, citizen')
         self.assertContains(dashboard_response, 'Citizen')
@@ -55,7 +65,7 @@ class AuthenticationTests(TestCase):
             '/accounts/officer/login/',
             {'username': 'officer', 'password': 'test-password-123'},
         )
-        self.assertRedirects(response, '/')
+        self.assertRedirects(response, '/dashboard/')
         self.assertEqual(self.client.session['_auth_user_id'], str(officer.pk))
 
         self.client.post('/accounts/logout/')
@@ -81,7 +91,7 @@ class AuthenticationTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.post('/accounts/logout/')
 
-        self.assertRedirects(response, '/accounts/login/')
+        self.assertRedirects(response, '/')
         self.assertNotIn('_auth_user_id', self.client.session)
 
 # Create your tests here.

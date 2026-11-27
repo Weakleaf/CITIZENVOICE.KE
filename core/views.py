@@ -12,7 +12,7 @@ from .forms import (
     CitizenRegistrationForm,
     OfficerAuthenticationForm,
 )
-from .models import Project, UserProfile, get_user_role
+from .models import KENYAN_COUNTIES, Project, UserProfile, get_user_role
 from .project_forms import ProjectForm
 
 
@@ -113,13 +113,9 @@ def project_list(request):
     if county:
         projects = projects.filter(county__iexact=county)
 
-    counties = Project.objects.order_by('county').values_list(
-        'county',
-        flat=True,
-    ).distinct()
     return render(request, 'core/project_list.html', {
         'projects': projects,
-        'counties': counties,
+        'counties': KENYAN_COUNTIES,
         'query': query,
         'selected_county': county,
         'can_manage_projects': can_manage_projects(request.user),

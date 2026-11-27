@@ -1,9 +1,15 @@
 from django import forms
 
-from .models import Project
+from .models import KENYAN_COUNTIES, Project
 
 
 class ProjectForm(forms.ModelForm):
+    county = forms.ChoiceField(
+        choices=[('', 'Select a county')] + [
+            (county, county) for county in KENYAN_COUNTIES
+        ],
+    )
+
     class Meta:
         model = Project
         fields = (

@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.html import escape
 
-from .models import Project, UserProfile
+from .models import KENYAN_COUNTIES, Project, UserProfile
 
 
 class AuthenticationTests(TestCase):
@@ -143,6 +145,13 @@ class ProjectCatalogTests(TestCase):
         )
         self.assertContains(no_match_response, 'No projects found')
 
+    def test_county_filter_lists_every_kenyan_county(self):
+        response = self.client.get(reverse('project_list'))
+
+        self.assertEqual(len(response.context['counties']), 47)
+        for county in KENYAN_COUNTIES:
+            self.assertContains(response, f'value="{escape(county)}"')
+
     def test_citizens_cannot_create_or_edit_projects(self):
         self.client.force_login(self.citizen)
         create_response = self.client.get(reverse('project_create'))
@@ -185,5 +194,28 @@ class ProjectCatalogTests(TestCase):
         self.assertFalse(
             Project.objects.filter(title='Invalid Date Project').exists(),
         )
+
+
+class SampleProjectCommandTests(TestCase):
+    def test_command_seeds_a_demo_project_in_each_county_once(self):
+        call_command('seed_sample_projects', verbosity=0)
+
+        self.assertEqual(Project.objects.count(), len(KENYAN_COUNTIES))
+        self.assertEqual(
+            set(Project.objects.values_list('county', flat=True)),
+            set(KENYAN_COUNTIES),
+        )
+        self.assertTrue(
+            all(
+                'fictional demonstration data' in description
+                for description in Project.objects.values_list(
+                    'description',
+                    flat=True,
+                )
+            )
+        )
+
+        call_command('seed_sample_projects', verbosity=0)
+        self.assertEqual(Project.objects.count(), len(KENYAN_COUNTIES))
 
 # Create your tests here.

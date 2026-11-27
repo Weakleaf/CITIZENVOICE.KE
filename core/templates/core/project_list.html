@@ -227,13 +227,15 @@
         <form class="filters" method="get">
             <input type="search" name="q" value="{{ query }}" placeholder="Search project titles" aria-label="Search project titles">
             <select name="county" aria-label="Filter by county">
-                <option value="">All counties</option>
+                <option value="">All 47 counties</option>
                 {% for county in counties %}
                     <option value="{{ county }}" {% if selected_county == county %}selected{% endif %}>{{ county }}</option>
                 {% endfor %}
             </select>
             <button class="button" type="submit">Search</button>
         </form>
+
+        <p style="color: var(--muted);">{{ projects|length }} project{{ projects|length|pluralize }} shown</p>
 
         <section class="project-list" aria-label="Projects">
             {% for project in projects %}

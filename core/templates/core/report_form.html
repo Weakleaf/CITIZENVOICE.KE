@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Submit a project report | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 34px 20px;
+            color: #183027;
+            background: var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(100%, 720px);
+            margin: 0 auto;
+        }
+
+        .brand,
+        .back {
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .brand {
+            color: var(--navy);
+            font-size: 19px;
+            font-weight: 800;
+        }
+
+        .back {
+            display: inline-block;
+            margin: 27px 0 17px;
+        }
+
+        section {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: clamp(22px, 5vw, 36px);
+            background: #fff;
+            box-shadow: 0 12px 32px rgba(18, 55, 42, 0.06);
+        }
+
+        h1 {
+            margin: 0 0 9px;
+            color: var(--navy);
+            font-size: 30px;
+        }
+
+        .intro,
+        .notice {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .notice {
+            border-left: 3px solid #d5a12d;
+            padding: 9px 12px;
+            background: #fff9e9;
+            font-size: 14px;
+        }
+
+        form p {
+            margin: 0 0 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid #c8d6cc;
+            border-radius: 7px;
+            padding: 10px 11px;
+            color: #183027;
+            background: #fff;
+            font: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--green);
+            outline: 3px solid rgba(31, 122, 76, 0.15);
+        }
+
+        .helptext,
+        ul {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        ul.errorlist {
+            padding-left: 18px;
+            color: #a32121;
+        }
+
+        button {
+            min-height: 42px;
+            border: 1px solid var(--green);
+            border-radius: 7px;
+            padding: 9px 16px;
+            color: #fff;
+            background: var(--green);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+        }
+
+        button:hover {
+            background: #17643a;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="brand" href="{% url 'portal' %}">CitizenVoice KE</a>
+        <a class="back" href="{% url 'report_list' %}">← Back to my reports</a>
+
+        <section>
+            <h1>Submit a project report</h1>
+            <p class="intro">Share a specific concern about a public project. Your report will be visible to authorized project officers.</p>
+            <p class="notice">Please provide accurate information. Do not include sensitive personal information in your description or attachments.</p>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <p class="helptext">Evidence is optional. Accepted formats: JPG, PNG, WEBP, PDF. Maximum file size: 5 MB.</p>
+                <button type="submit">Submit report</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

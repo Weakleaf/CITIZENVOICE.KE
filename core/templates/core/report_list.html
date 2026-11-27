@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project reports | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 34px 20px;
+            color: #183027;
+            background: var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(100%, 980px);
+            margin: 0 auto;
+        }
+
+        .topbar,
+        .heading,
+        .report-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            color: var(--navy);
+            font-size: 19px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: var(--navy);
+            font-size: clamp(28px, 4vw, 36px);
+        }
+
+        .intro {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        header {
+            margin: 50px 0 24px;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--green);
+            border-radius: 7px;
+            padding: 9px 14px;
+            color: #fff;
+            background: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .report-list {
+            display: grid;
+            gap: 13px;
+        }
+
+        .report {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 19px 21px;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(18, 55, 42, 0.04);
+        }
+
+        .report h2 {
+            margin: 0;
+            color: var(--navy);
+            font-size: 18px;
+        }
+
+        .report h2 a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .report h2 a:hover {
+            color: var(--green);
+        }
+
+        .report-meta {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status {
+            border-radius: 20px;
+            padding: 5px 10px;
+            color: #17643a;
+            background: #e8f4eb;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .empty {
+            border: 1px dashed #b9cbbf;
+            border-radius: 12px;
+            padding: 35px 20px;
+            color: var(--muted);
+            background: #fff;
+            text-align: center;
+        }
+
+        .empty h2 {
+            color: var(--navy);
+        }
+
+        .back {
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="topbar">
+            <a class="brand" href="{% url 'portal' %}">CitizenVoice KE</a>
+            <a class="back" href="{% url 'dashboard' %}">Dashboard</a>
+        </div>
+
+        <header class="heading">
+            <div>
+                <h1>{% if can_manage_projects %}Project reports{% else %}My reports{% endif %}</h1>
+                <p class="intro">
+                    {% if can_manage_projects %}
+                        Review reports submitted about public projects.
+                    {% else %}
+                        Follow the review status and responses to your reports.
+                    {% endif %}
+                </p>
+            </div>
+            {% if not can_manage_projects %}
+                <a class="button" href="{% url 'report_create' %}">Submit a report</a>
+            {% endif %}
+        </header>
+
+        <section class="report-list" aria-label="Project reports">
+            {% for report in reports %}
+                <article class="report">
+                    <div class="heading">
+                        <h2><a href="{% url 'report_detail' report.pk %}">{{ report.title }}</a></h2>
+                        <span class="status">{{ report.get_status_display }}</span>
+                    </div>
+                    <div class="report-meta">
+                        <span>{{ report.project.title }} · {{ report.project.county }}</span>
+                        <span>{{ report.get_category_display }}</span>
+                        {% if can_manage_projects %}
+                            <span>By {{ report.submitted_by.username }}</span>
+                        {% endif %}
+                        <span>{{ report.created_at|date:"M j, Y" }}</span>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="empty">
+                    <h2>No reports yet</h2>
+                    <p>
+                        {% if can_manage_projects %}
+                            Citizen reports will appear here when submitted.
+                        {% else %}
+                            Submit a project concern to start tracking it here.
+                        {% endif %}
+                    </p>
+                    {% if not can_manage_projects %}
+                        <a class="button" href="{% url 'report_create' %}">Submit a report</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>

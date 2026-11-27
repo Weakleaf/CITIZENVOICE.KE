@@ -1,10 +1,12 @@
 from functools import wraps
+from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
@@ -12,8 +14,15 @@ from .forms import (
     CitizenRegistrationForm,
     OfficerAuthenticationForm,
 )
-from .models import KENYAN_COUNTIES, Project, UserProfile, get_user_role
+from .models import (
+    KENYAN_COUNTIES,
+    Project,
+    ProjectReport,
+    UserProfile,
+    get_user_role,
+)
 from .project_forms import ProjectForm
+from .report_forms import ProjectReportForm, ProjectReportReviewForm
 
 
 def portal(request):
@@ -34,6 +43,17 @@ def project_manager_required(view_func):
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         if not can_manage_projects(request.user):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+
+    return wrapped_view
+
+
+def citizen_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def wrapped_view(request, *args, **kwargs):
+        if get_user_role(request.user) != UserProfile.Role.CITIZEN:
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
 
@@ -127,6 +147,10 @@ def project_detail(request, pk):
     return render(request, 'core/project_detail.html', {
         'project': project,
         'can_manage_projects': can_manage_projects(request.user),
+        'can_submit_reports': (
+            request.user.is_authenticated
+            and get_user_role(request.user) == UserProfile.Role.CITIZEN
+        ),
     })
 
 
@@ -166,3 +190,97 @@ def project_update(request, pk):
         'heading': 'Update project',
         'submit_label': 'Save changes',
     })
+
+
+@login_required
+def report_list(request):
+    reports = ProjectReport.objects.select_related(
+        'project',
+        'submitted_by',
+    )
+    if not can_manage_projects(request.user):
+        reports = reports.filter(submitted_by=request.user)
+
+    return render(request, 'core/report_list.html', {
+        'reports': reports,
+        'can_manage_projects': can_manage_projects(request.user),
+    })
+
+
+@citizen_required
+def report_create(request):
+    initial = {}
+    project_id = request.GET.get('project')
+    if request.method != 'POST' and project_id:
+        initial['project'] = get_object_or_404(Project, pk=project_id)
+
+    if request.method == 'POST':
+        form = ProjectReportForm(request.POST, request.FILES)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.submitted_by = request.user
+            report.save()
+            messages.success(request, 'Your project report has been submitted.')
+            return redirect('report_detail', pk=report.pk)
+    else:
+        form = ProjectReportForm(initial=initial)
+
+    return render(request, 'core/report_form.html', {
+        'form': form,
+    })
+
+
+@login_required
+def report_detail(request, pk):
+    report = get_object_or_404(
+        ProjectReport.objects.select_related('project', 'submitted_by'),
+        pk=pk,
+    )
+    can_manage = can_manage_projects(request.user)
+    if not can_manage and report.submitted_by_id != request.user.pk:
+        raise PermissionDenied
+
+    return render(request, 'core/report_detail.html', {
+        'report': report,
+        'can_manage_projects': can_manage,
+    })
+
+
+@project_manager_required
+def report_review(request, pk):
+    report = get_object_or_404(
+        ProjectReport.objects.select_related('project', 'submitted_by'),
+        pk=pk,
+    )
+    if request.method == 'POST':
+        form = ProjectReportReviewForm(request.POST, instance=report)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'The report review has been updated.')
+            return redirect('report_detail', pk=report.pk)
+    else:
+        form = ProjectReportReviewForm(instance=report)
+
+    return render(request, 'core/report_review.html', {
+        'form': form,
+        'report': report,
+    })
+
+
+@login_required
+def report_evidence_download(request, pk):
+    report = get_object_or_404(
+        ProjectReport.objects.select_related('submitted_by'),
+        pk=pk,
+    )
+    can_manage = can_manage_projects(request.user)
+    if not can_manage and report.submitted_by_id != request.user.pk:
+        raise PermissionDenied
+    if not report.evidence:
+        raise PermissionDenied
+
+    return FileResponse(
+        report.evidence.open('rb'),
+        as_attachment=True,
+        filename=Path(report.evidence.name).name,
+    )

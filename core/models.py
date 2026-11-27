@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from .validators import validate_evidence_file
+
 
 KENYAN_COUNTIES = (
     'Mombasa',
@@ -100,6 +102,55 @@ class Project(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.county})'
+
+
+class ProjectReport(models.Model):
+    class Category(models.TextChoices):
+        DELAY = 'delay', 'Project delay'
+        QUALITY = 'quality', 'Work quality concern'
+        INACTIVE = 'inactive', 'Work appears inactive'
+        SAFETY = 'safety', 'Environmental or safety concern'
+        OTHER = 'other', 'Other'
+
+    class Status(models.TextChoices):
+        SUBMITTED = 'submitted', 'Submitted'
+        UNDER_REVIEW = 'under_review', 'Under review'
+        VERIFIED = 'verified', 'Verified'
+        ACTION_TAKEN = 'action_taken', 'Action taken'
+        CLOSED = 'closed', 'Closed'
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.PROTECT,
+        related_name='reports',
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='submitted_project_reports',
+    )
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=Category.choices)
+    description = models.TextField()
+    evidence = models.FileField(
+        upload_to='report_evidence/%Y/%m/',
+        blank=True,
+        validators=[validate_evidence_file],
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SUBMITTED,
+    )
+    officer_response = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f'{self.title} - {self.project.title}'
 
 
 def get_user_role(user):

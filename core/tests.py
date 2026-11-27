@@ -1,10 +1,14 @@
+import tempfile
+
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 from django.utils.html import escape
 
-from .models import KENYAN_COUNTIES, Project, UserProfile
+from .models import KENYAN_COUNTIES, Project, ProjectReport, UserProfile
 
 
 class AuthenticationTests(TestCase):
@@ -217,5 +221,215 @@ class SampleProjectCommandTests(TestCase):
 
         call_command('seed_sample_projects', verbosity=0)
         self.assertEqual(Project.objects.count(), len(KENYAN_COUNTIES))
+
+
+class ProjectReportTests(TestCase):
+    def setUp(self):
+        self.media_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media_directory.cleanup)
+        media_settings = override_settings(MEDIA_ROOT=self.media_directory.name)
+        media_settings.enable()
+        self.addCleanup(media_settings.disable)
+
+        self.project = Project.objects.create(
+            title='Sample Water Project',
+            county='Nakuru',
+            description='Demonstration project for reports.',
+        )
+        user_model = get_user_model()
+        self.citizen = user_model.objects.create_user(
+            username='reporter',
+            password='test-password-123',
+        )
+        self.other_citizen = user_model.objects.create_user(
+            username='otherreporter',
+            password='test-password-123',
+        )
+        self.officer = user_model.objects.create_user(
+            username='reviewofficer',
+            password='test-password-123',
+        )
+        UserProfile.objects.create(
+            user=self.officer,
+            role=UserProfile.Role.OFFICER,
+        )
+
+    def make_report(self, submitter):
+        return ProjectReport.objects.create(
+            project=self.project,
+            submitted_by=submitter,
+            title='Work has stopped',
+            category=ProjectReport.Category.INACTIVE,
+            description='No work has been visible for several weeks.',
+        )
+
+    def test_citizen_can_submit_report_and_download_their_evidence(self):
+        self.client.force_login(self.citizen)
+        response = self.client.post(
+            reverse('report_create'),
+            {
+                'project': self.project.pk,
+                'title': 'Work has stopped',
+                'category': ProjectReport.Category.INACTIVE,
+                'description': 'No work has been visible for several weeks.',
+                'evidence': SimpleUploadedFile(
+                    'site-photo.png',
+                    b'\x89PNG\r\n\x1a\nsample image data',
+                    content_type='image/png',
+                ),
+            },
+        )
+
+        report = ProjectReport.objects.get(title='Work has stopped')
+        self.assertRedirects(
+            response,
+            reverse('report_detail', args=(report.pk,)),
+        )
+        self.assertEqual(report.submitted_by, self.citizen)
+        self.assertEqual(report.status, ProjectReport.Status.SUBMITTED)
+
+        download_response = self.client.get(
+            reverse('report_evidence_download', args=(report.pk,)),
+        )
+        self.assertEqual(download_response.status_code, 200)
+        self.assertIn('attachment', download_response['Content-Disposition'])
+        self.assertEqual(
+            b''.join(download_response.streaming_content),
+            b'\x89PNG\r\n\x1a\nsample image data',
+        )
+        download_response.close()
+
+    def test_evidence_rejects_unsupported_and_mismatched_files(self):
+        self.client.force_login(self.citizen)
+        report_data = {
+            'project': self.project.pk,
+            'title': 'Unsafe attachment',
+            'category': ProjectReport.Category.OTHER,
+            'description': 'Testing evidence validation.',
+        }
+
+        unsupported_response = self.client.post(
+            reverse('report_create'),
+            {
+                **report_data,
+                'evidence': SimpleUploadedFile(
+                    'notes.txt',
+                    b'not an accepted evidence format',
+                    content_type='text/plain',
+                ),
+            },
+        )
+        self.assertEqual(unsupported_response.status_code, 200)
+        self.assertContains(unsupported_response, 'JPG, PNG, WEBP, or PDF')
+        self.assertFalse(
+            ProjectReport.objects.filter(title='Unsafe attachment').exists(),
+        )
+
+        mismatch_response = self.client.post(
+            reverse('report_create'),
+            {
+                **report_data,
+                'evidence': SimpleUploadedFile(
+                    'fake.pdf',
+                    b'this is not a PDF',
+                    content_type='application/pdf',
+                ),
+            },
+        )
+        self.assertEqual(mismatch_response.status_code, 200)
+        self.assertContains(mismatch_response, 'do not match')
+
+    def test_evidence_larger_than_five_megabytes_is_rejected(self):
+        self.client.force_login(self.citizen)
+        response = self.client.post(
+            reverse('report_create'),
+            {
+                'project': self.project.pk,
+                'title': 'Large attachment',
+                'category': ProjectReport.Category.OTHER,
+                'description': 'Testing the upload size limit.',
+                'evidence': SimpleUploadedFile(
+                    'large-photo.jpg',
+                    b'\xff\xd8\xff' + b'x' * (5 * 1024 * 1024),
+                    content_type='image/jpeg',
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '5 MB or smaller')
+        self.assertFalse(
+            ProjectReport.objects.filter(title='Large attachment').exists(),
+        )
+
+    def test_citizens_only_see_and_download_their_own_reports(self):
+        own_report = self.make_report(self.citizen)
+        other_report = self.make_report(self.other_citizen)
+        own_report.evidence = SimpleUploadedFile(
+            'private-evidence.png',
+            b'\x89PNG\r\n\x1a\nprivate evidence',
+            content_type='image/png',
+        )
+        own_report.save()
+        self.client.force_login(self.citizen)
+
+        list_response = self.client.get(reverse('report_list'))
+        self.assertContains(list_response, reverse('report_detail', args=(own_report.pk,)))
+        self.assertNotContains(
+            list_response,
+            reverse('report_detail', args=(other_report.pk,)),
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse('report_detail', args=(other_report.pk,)),
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse('report_review', args=(own_report.pk,)),
+            ).status_code,
+            403,
+        )
+        download_response = self.client.get(
+            reverse('report_evidence_download', args=(own_report.pk,)),
+        )
+        self.assertEqual(download_response.status_code, 200)
+        download_response.close()
+        self.client.force_login(self.other_citizen)
+        self.assertEqual(
+            self.client.get(
+                reverse('report_evidence_download', args=(own_report.pk,)),
+            ).status_code,
+            403,
+        )
+
+    def test_officer_can_update_status_and_respond(self):
+        report = self.make_report(self.citizen)
+        self.client.force_login(self.officer)
+
+        response = self.client.post(
+            reverse('report_review', args=(report.pk,)),
+            {
+                'status': ProjectReport.Status.UNDER_REVIEW,
+                'officer_response': 'The concern is being reviewed.',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('report_detail', args=(report.pk,)),
+        )
+        report.refresh_from_db()
+        self.assertEqual(report.status, ProjectReport.Status.UNDER_REVIEW)
+        self.assertEqual(
+            report.officer_response,
+            'The concern is being reviewed.',
+        )
+        self.client.force_login(self.citizen)
+        citizen_detail = self.client.get(
+            reverse('report_detail', args=(report.pk,)),
+        )
+        self.assertContains(citizen_detail, 'The concern is being reviewed.')
 
 # Create your tests here.

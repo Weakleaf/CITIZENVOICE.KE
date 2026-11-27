@@ -134,6 +134,10 @@
             background: #fff;
         }
 
+        .button.report {
+            margin-top: 20px;
+        }
+
         @media (max-width: 560px) {
             .heading {
                 flex-direction: column;
@@ -184,6 +188,8 @@
                     <a class="button" href="{% url 'project_update' project.pk %}">Edit project</a>
                     <a class="button secondary" href="{% url 'project_create' %}">Add another project</a>
                 </div>
+            {% elif can_submit_reports %}
+                <a class="button report" href="{% url 'report_create' %}?project={{ project.pk }}">Report a concern about this project</a>
             {% endif %}
         </article>
     </main>

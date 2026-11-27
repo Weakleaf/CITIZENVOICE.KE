@@ -14,6 +14,19 @@ urlpatterns = [
         views.project_update,
         name='project_update',
     ),
+    path('reports/', views.report_list, name='report_list'),
+    path('reports/new/', views.report_create, name='report_create'),
+    path('reports/<int:pk>/', views.report_detail, name='report_detail'),
+    path(
+        'reports/<int:pk>/review/',
+        views.report_review,
+        name='report_review',
+    ),
+    path(
+        'reports/<int:pk>/evidence/',
+        views.report_evidence_download,
+        name='report_evidence_download',
+    ),
     path('accounts/login/', views.CitizenLoginView.as_view(), name='login'),
     path(
         'accounts/citizen/login/',

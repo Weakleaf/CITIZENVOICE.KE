@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Review report | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 34px 20px;
+            color: #183027;
+            background: var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(100%, 720px);
+            margin: 0 auto;
+        }
+
+        .brand,
+        .back {
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .brand {
+            color: var(--navy);
+            font-size: 19px;
+            font-weight: 800;
+        }
+
+        .back {
+            display: inline-block;
+            margin: 27px 0 17px;
+        }
+
+        section {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: clamp(22px, 5vw, 36px);
+            background: #fff;
+            box-shadow: 0 12px 32px rgba(18, 55, 42, 0.06);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: var(--navy);
+            font-size: 29px;
+        }
+
+        .summary {
+            margin: 0 0 25px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        form p {
+            margin: 0 0 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid #c8d6cc;
+            border-radius: 7px;
+            padding: 10px 11px;
+            color: #183027;
+            background: #fff;
+            font: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .errorlist {
+            color: #a32121;
+        }
+
+        button {
+            min-height: 42px;
+            border: 1px solid var(--green);
+            border-radius: 7px;
+            padding: 9px 16px;
+            color: #fff;
+            background: var(--green);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="brand" href="{% url 'portal' %}">CitizenVoice KE</a>
+        <a class="back" href="{% url 'report_detail' report.pk %}">← Back to report</a>
+
+        <section>
+            <h1>Review report</h1>
+            <p class="summary">{{ report.title }} · {{ report.project.title }} · {{ report.project.county }}</p>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Save review and response</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

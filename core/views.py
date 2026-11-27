@@ -1,21 +1,43 @@
+from functools import wraps
+
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.shortcuts import redirect, render
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import (
     CitizenAuthenticationForm,
     CitizenRegistrationForm,
     OfficerAuthenticationForm,
 )
-from .models import UserProfile, get_user_role
+from .models import Project, UserProfile, get_user_role
+from .project_forms import ProjectForm
 
 
 def portal(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'core/portal.html')
+
+
+def can_manage_projects(user):
+    return (
+        user.is_authenticated
+        and get_user_role(user) in ('officer', 'admin')
+    )
+
+
+def project_manager_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def wrapped_view(request, *args, **kwargs):
+        if not can_manage_projects(request.user):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+
+    return wrapped_view
 
 
 class CitizenLoginView(auth_views.LoginView):
@@ -78,4 +100,73 @@ def dashboard(request):
             'officer': 'Project officer',
             'admin': 'System administrator',
         }[get_user_role(request.user)],
+    })
+
+
+def project_list(request):
+    projects = Project.objects.all()
+    query = request.GET.get('q', '').strip()
+    county = request.GET.get('county', '').strip()
+
+    if query:
+        projects = projects.filter(title__icontains=query)
+    if county:
+        projects = projects.filter(county__iexact=county)
+
+    counties = Project.objects.order_by('county').values_list(
+        'county',
+        flat=True,
+    ).distinct()
+    return render(request, 'core/project_list.html', {
+        'projects': projects,
+        'counties': counties,
+        'query': query,
+        'selected_county': county,
+        'can_manage_projects': can_manage_projects(request.user),
+    })
+
+
+def project_detail(request, pk):
+    project = get_object_or_404(Project, pk=pk)
+    return render(request, 'core/project_detail.html', {
+        'project': project,
+        'can_manage_projects': can_manage_projects(request.user),
+    })
+
+
+@project_manager_required
+def project_create(request):
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            project = form.save()
+            messages.success(request, 'Project created successfully.')
+            return redirect('project_detail', pk=project.pk)
+    else:
+        form = ProjectForm()
+
+    return render(request, 'core/project_form.html', {
+        'form': form,
+        'heading': 'Add a public project',
+        'submit_label': 'Create project',
+    })
+
+
+@project_manager_required
+def project_update(request, pk):
+    project = get_object_or_404(Project, pk=pk)
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, instance=project)
+        if form.is_valid():
+            project = form.save()
+            messages.success(request, 'Project updated successfully.')
+            return redirect('project_detail', pk=project.pk)
+    else:
+        form = ProjectForm(instance=project)
+
+    return render(request, 'core/project_form.html', {
+        'form': form,
+        'project': project,
+        'heading': 'Update project',
+        'submit_label': 'Save changes',
     })

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import UserProfile
+from .models import Project, UserProfile
 
 
 class AuthenticationTests(TestCase):
@@ -93,5 +93,97 @@ class AuthenticationTests(TestCase):
 
         self.assertRedirects(response, '/')
         self.assertNotIn('_auth_user_id', self.client.session)
+
+
+class ProjectCatalogTests(TestCase):
+    def setUp(self):
+        self.project = Project.objects.create(
+            title='Community Health Centre',
+            county='Nakuru',
+            location='Nakuru Town',
+            implementing_agency='County Government',
+            description='Construction of a community health centre.',
+            status=Project.Status.IN_PROGRESS,
+        )
+        self.citizen = get_user_model().objects.create_user(
+            username='resident',
+            password='test-password-123',
+        )
+        self.officer = get_user_model().objects.create_user(
+            username='projectofficer',
+            password='test-password-123',
+        )
+        UserProfile.objects.create(
+            user=self.officer,
+            role=UserProfile.Role.OFFICER,
+        )
+
+    def test_public_can_browse_and_view_project_details(self):
+        list_response = self.client.get(reverse('project_list'))
+        detail_response = self.client.get(
+            reverse('project_detail', args=(self.project.pk,)),
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, 'Community Health Centre')
+        self.assertContains(list_response, 'Nakuru')
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, 'Construction of a community health centre.')
+
+    def test_project_list_can_filter_by_title_and_county(self):
+        response = self.client.get(
+            reverse('project_list'),
+            {'q': 'health', 'county': 'Nakuru'},
+        )
+        self.assertContains(response, 'Community Health Centre')
+
+        no_match_response = self.client.get(
+            reverse('project_list'),
+            {'q': 'health', 'county': 'Mombasa'},
+        )
+        self.assertContains(no_match_response, 'No projects found')
+
+    def test_citizens_cannot_create_or_edit_projects(self):
+        self.client.force_login(self.citizen)
+        create_response = self.client.get(reverse('project_create'))
+        edit_response = self.client.get(
+            reverse('project_update', args=(self.project.pk,)),
+        )
+
+        self.assertEqual(create_response.status_code, 403)
+        self.assertEqual(edit_response.status_code, 403)
+
+    def test_officer_can_create_project_and_invalid_dates_are_rejected(self):
+        self.client.force_login(self.officer)
+        create_url = reverse('project_create')
+        valid_data = {
+            'title': 'Rural Access Road',
+            'county': 'Kisumu',
+            'location': 'West Kisumu',
+            'implementing_agency': 'County Government',
+            'description': 'Improvement of a rural access road.',
+            'status': Project.Status.PLANNED,
+            'start_date': '2026-12-01',
+            'expected_completion': '2027-06-30',
+        }
+
+        response = self.client.post(create_url, valid_data)
+        created_project = Project.objects.get(title='Rural Access Road')
+        self.assertRedirects(
+            response,
+            reverse('project_detail', args=(created_project.pk,)),
+        )
+
+        invalid_data = dict(valid_data)
+        invalid_data['title'] = 'Invalid Date Project'
+        invalid_data['start_date'] = '2027-06-30'
+        invalid_data['expected_completion'] = '2026-12-01'
+        invalid_response = self.client.post(create_url, invalid_data)
+
+        self.assertEqual(invalid_response.status_code, 200)
+        self.assertContains(invalid_response, 'on or after the start date')
+        self.assertFalse(
+            Project.objects.filter(title='Invalid Date Project').exists(),
+        )
 
 # Create your tests here.

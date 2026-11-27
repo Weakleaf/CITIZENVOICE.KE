@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ heading }} | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 36px 22px;
+            color: #183027;
+            background: var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(100%, 720px);
+            margin: 0 auto;
+        }
+
+        .brand,
+        .back {
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .brand {
+            color: var(--navy);
+            font-size: 19px;
+            font-weight: 800;
+        }
+
+        .back {
+            display: inline-block;
+            margin: 28px 0 18px;
+        }
+
+        section {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: clamp(22px, 5vw, 36px);
+            background: #fff;
+            box-shadow: 0 12px 32px rgba(18, 55, 42, 0.06);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: var(--navy);
+            font-size: 30px;
+        }
+
+        .intro {
+            margin: 0 0 25px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        form p {
+            margin: 0 0 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid #c8d6cc;
+            border-radius: 7px;
+            padding: 10px 11px;
+            color: #183027;
+            background: #fff;
+            font: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--green);
+            outline: 3px solid rgba(31, 122, 76, 0.15);
+        }
+
+        .helptext,
+        ul {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        ul.errorlist {
+            padding-left: 18px;
+            color: #a32121;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        button,
+        .cancel {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--green);
+            border-radius: 7px;
+            padding: 9px 15px;
+            color: #fff;
+            background: var(--green);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .cancel {
+            color: var(--green);
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="brand" href="{% url 'portal' %}">CitizenVoice KE</a>
+        <a class="back" href="{% if project %}{% url 'project_detail' project.pk %}{% else %}{% url 'project_list' %}{% endif %}">
+            ← Cancel and go back
+        </a>
+
+        <section>
+            <h1>{{ heading }}</h1>
+            <p class="intro">Provide clear, up-to-date information so citizens can follow this project.</p>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="actions">
+                    <button type="submit">{{ submit_label }}</button>
+                    <a class="cancel" href="{% if project %}{% url 'project_detail' project.pk %}{% else %}{% url 'project_list' %}{% endif %}">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

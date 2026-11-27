@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ project.title }} | CitizenVoice KE</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --navy: #12372a;
+            --green: #1f7a4c;
+            --cream: #f4f7f2;
+            --line: #dce6df;
+            --muted: #607066;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 36px 22px;
+            color: #183027;
+            background: var(--cream);
+            font-family: Inter, Arial, sans-serif;
+        }
+
+        main {
+            width: min(100%, 820px);
+            margin: 0 auto;
+        }
+
+        .brand {
+            color: var(--navy);
+            font-size: 19px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .back {
+            display: inline-block;
+            margin: 28px 0 18px;
+            color: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        article {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: clamp(22px, 5vw, 38px);
+            background: #fff;
+            box-shadow: 0 12px 32px rgba(18, 55, 42, 0.06);
+        }
+
+        .heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--navy);
+            font-size: clamp(26px, 4vw, 36px);
+        }
+
+        .status {
+            flex: 0 0 auto;
+            border-radius: 20px;
+            padding: 7px 11px;
+            color: #17643a;
+            background: #e8f4eb;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .location {
+            margin: 14px 0 24px;
+            color: var(--muted);
+        }
+
+        .description {
+            color: #33463a;
+            line-height: 1.7;
+            white-space: pre-line;
+        }
+
+        dl {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin: 28px 0 0;
+            border-top: 1px solid var(--line);
+            padding-top: 22px;
+        }
+
+        dt {
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        dd {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 28px;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--green);
+            border-radius: 7px;
+            padding: 9px 14px;
+            color: #fff;
+            background: var(--green);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .button.secondary {
+            color: var(--green);
+            background: #fff;
+        }
+
+        @media (max-width: 560px) {
+            .heading {
+                flex-direction: column;
+            }
+
+            dl {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="brand" href="{% url 'portal' %}">CitizenVoice KE</a>
+        <a class="back" href="{% url 'project_list' %}">← Back to projects</a>
+
+        <article>
+            <div class="heading">
+                <h1>{{ project.title }}</h1>
+                <span class="status">{{ project.get_status_display }}</span>
+            </div>
+            <p class="location">
+                {{ project.county }}{% if project.location %} · {{ project.location }}{% endif %}
+            </p>
+            <div class="description">{{ project.description }}</div>
+
+            <dl>
+                <div>
+                    <dt>Implementing agency</dt>
+                    <dd>{{ project.implementing_agency|default:"Not specified" }}</dd>
+                </div>
+                <div>
+                    <dt>Start date</dt>
+                    <dd>{{ project.start_date|date:"M j, Y"|default:"Not specified" }}</dd>
+                </div>
+                <div>
+                    <dt>Expected completion</dt>
+                    <dd>{{ project.expected_completion|date:"M j, Y"|default:"Not specified" }}</dd>
+                </div>
+                <div>
+                    <dt>Last updated</dt>
+                    <dd>{{ project.updated_at|date:"M j, Y" }}</dd>
+                </div>
+            </dl>
+
+            {% if can_manage_projects %}
+                <div class="actions">
+                    <a class="button" href="{% url 'project_update' project.pk %}">Edit project</a>
+                    <a class="button secondary" href="{% url 'project_create' %}">Add another project</a>
+                </div>
+            {% endif %}
+        </article>
+    </main>
+</body>
+</html>
